@@ -1,0 +1,161 @@
+<app-contest-layout>
+  <h1>Register &amp; Play</h1>
+  <p class="intro">Bought a new vivo smartphone worth Rs. {{ (config()?.minPrice ?? 20000).toLocaleString('en-IN') }} or more? Fill in your details to play the Diwali scratch card.</p>
+
+  @if (configError()) {
+    <div class="alert error" role="alert">{{ configError() }}</div>
+  } @else if (config() && !config()!.contestOpen) {
+    <div class="alert info" role="status">The contest is not open right now. Thank you for your interest.</div>
+  } @else {
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <!-- 1. Name -->
+      <div class="field">
+        <label for="name">Name <span class="req">*</span></label>
+        <input id="name" class="input" formControlName="name" autocomplete="name" maxlength="100"
+               [class.invalid]="showError('name')" placeholder="Your full name" />
+        @if (showError('name')) {
+          <span class="error">{{ form.controls.name.hasError('required') ? 'Name is required' : 'Please use letters only' }}</span>
+        }
+      </div>
+
+      <!-- 2. Contact Number -->
+      <div class="field">
+        <label for="contactNumber">Contact Number <span class="req">*</span></label>
+        <input id="contactNumber" class="input" formControlName="contactNumber" inputmode="numeric"
+               autocomplete="tel-national" placeholder="10-digit number"
+               (input)="digitsOnly('contactNumber', 10)" [class.invalid]="showError('contactNumber')" />
+        @if (showError('contactNumber')) {
+          <span class="error">Enter a valid 10-digit mobile number</span>
+        }
+      </div>
+
+      <!-- 3. Branch -->
+      <div class="field">
+        <label for="branch">Branch <span class="req">*</span></label>
+        <select id="branch" class="input" formControlName="branch" [class.invalid]="showError('branch') || !!branchMismatch()">
+          <option value="" disabled>Select branch</option>
+          @for (b of config()?.branches ?? []; track b) {
+            <option [value]="b">{{ b }}</option>
+          }
+        </select>
+        @if (showError('branch')) {
+          <span class="error">Please select a branch</span>
+        }
+        @if (branchMismatch(); as correct) {
+          <span class="error">This shop belongs to the {{ correct }} branch.
+            <button type="button" class="link" (click)="form.controls.branch.setValue(correct)">Use {{ correct }}</button>
+          </span>
+        }
+      </div>
+
+      <!-- 4. Shop Code -->
+      <div class="field">
+        <label for="shopCode">Shop Code <span class="req">*</span></label>
+        <input id="shopCode" class="input upper" formControlName="shopCode" autocomplete="off"
+               autocapitalize="characters" spellcheck="false" maxlength="32" placeholder="e.g. TND00171438"
+               [class.invalid]="showError('shopCode') || shop().kind === 'notFound'" />
+        @switch (shop().kind) {
+          @case ('loading') { <span class="hint">Checking shop code…</span> }
+          @case ('notFound') { <span class="error">Shop code not found. Please check with the store.</span> }
+          @case ('error') { <span class="error">Could not check the shop code. Please try again.</span> }
+          @default {
+            @if (showError('shopCode')) { <span class="error">Shop Code is required</span> }
+          }
+        }
+      </div>
+
+      <!-- 5. Shop Name (auto-fill) -->
+      <div class="field">
+        <label for="shopName">Shop Name</label>
+        <input id="shopName" class="input" formControlName="shopName" readonly
+               placeholder="Fills automatically from Shop Code" />
+      </div>
+
+      <!-- 6. Mobile Number -->
+      <div class="field">
+        <label for="mobileNumber">Mobile Number <span class="req">*</span></label>
+        <input id="mobileNumber" class="input" formControlName="mobileNumber" inputmode="numeric"
+               placeholder="10-digit number"
+               (input)="digitsOnly('mobileNumber', 10)" [class.invalid]="showError('mobileNumber')" />
+        <label class="check small">
+          <input type="checkbox" [checked]="sameNumber()" (change)="toggleSameNumber($any($event.target).checked)" />
+          Same as Contact Number
+        </label>
+        @if (showError('mobileNumber')) {
+          <span class="error">Enter a valid 10-digit mobile number</span>
+        }
+      </div>
+
+      <!-- 7. IMEI -->
+      <div class="field">
+        <label for="imei">IMEI Number <span class="req">*</span></label>
+        <input id="imei" class="input mono" formControlName="imei" inputmode="numeric" maxlength="15"
+               placeholder="15-digit IMEI" (input)="digitsOnly('imei', 15)" [class.invalid]="showError('imei')" />
+        <span class="hint">Dial <strong>*#06#</strong> on the new phone, or check the box label.</span>
+        @if (showError('imei')) {
+          <span class="error">IMEI must be exactly 15 digits</span>
+        }
+      </div>
+
+      <!-- 8. Mobile Model -->
+      <div class="field">
+        <label for="mobileModel">Mobile Model <span class="req">*</span></label>
+        <select id="mobileModel" class="input" formControlName="mobileModel" [class.invalid]="showError('mobileModel')">
+          <option value="" disabled>Select model</option>
+          @for (m of config()?.models ?? []; track m) {
+            <option [value]="m">{{ m }}</option>
+          }
+          <option [value]="OTHER_MODEL">Other</option>
+        </select>
+        @if (isOtherModel()) {
+          <input class="input" formControlName="otherModel" maxlength="100" placeholder="Type the model name"
+                 [class.invalid]="submitted() && !form.controls.otherModel.value.trim()" />
+        }
+        @if (showError('mobileModel') || (isOtherModel() && submitted() && !form.controls.otherModel.value.trim())) {
+          <span class="error">Please select the mobile model</span>
+        }
+      </div>
+
+      <!-- 9. Mobile Price -->
+      <div class="field">
+        <label for="mobilePrice">Mobile Price (Rs.) <span class="req">*</span></label>
+        <input id="mobilePrice" class="input" formControlName="mobilePrice" inputmode="numeric" maxlength="7"
+               placeholder="e.g. 29999" (input)="digitsOnly('mobilePrice', 7)" [class.invalid]="showError('mobilePrice')" />
+        @if (showError('mobilePrice')) {
+          <span class="error">
+            @if (form.controls.mobilePrice.hasError('minPrice')) {
+              This contest is for phones priced Rs. {{ (config()?.minPrice ?? 20000).toLocaleString('en-IN') }} and above
+            } @else {
+              Mobile Price is required
+            }
+          </span>
+        }
+      </div>
+
+      <!-- 10. Terms -->
+      <label class="check terms" [class.invalid-text]="showError('termsAccepted')">
+        <input type="checkbox" formControlName="termsAccepted" />
+        <span>I agree to the <button type="button" class="link" (click)="showTerms.set(true)">Terms &amp; Conditions</button></span>
+      </label>
+
+      @if (submitError()) {
+        <div class="alert error" role="alert">{{ submitError() }}</div>
+      }
+
+      <button type="submit" class="btn gold block" [disabled]="!canContinue()">
+        @if (submitting()) { <span class="spinner dark"></span> Submitting… } @else { Next: Play Scratch Card }
+      </button>
+    </form>
+  }
+</app-contest-layout>
+
+@if (showTerms()) {
+  <div class="modal-backdrop" (click)="showTerms.set(false)">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="terms-title" (click)="$event.stopPropagation()">
+      <h2 id="terms-title">Terms &amp; Conditions</h2>
+      <div class="terms-body" [innerHTML]="termsHtml"></div>
+      <button type="button" class="btn block" (click)="form.controls.termsAccepted.setValue(true); showTerms.set(false)">I Agree</button>
+      <button type="button" class="btn ghost block close" (click)="showTerms.set(false)">Close</button>
+    </div>
+  </div>
+}

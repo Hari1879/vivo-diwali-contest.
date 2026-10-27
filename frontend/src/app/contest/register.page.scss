@@ -1,0 +1,35 @@
+h1 { font-size: 24px; color: var(--navy); }
+.intro { color: var(--muted); font-size: 14px; margin: 0 0 20px; line-height: 1.5; }
+
+.upper { text-transform: uppercase; }
+.mono { font-variant-numeric: tabular-nums; letter-spacing: .5px; }
+
+.check {
+  display: flex; align-items: flex-start; gap: 10px;
+  font-size: 15px; cursor: pointer; line-height: 1.4;
+  input { width: 20px; height: 20px; margin: 0; flex: none; accent-color: var(--vivo-blue); }
+  &.small { font-size: 13px; color: var(--muted); align-items: center; input { width: 16px; height: 16px; } }
+}
+.terms { margin: 8px 0 20px; padding: 14px; background: #f4f6fc; border-radius: 10px; }
+.invalid-text { outline: 1.5px solid var(--danger); }
+
+.link {
+  background: none; border: 0; padding: 0; font: inherit;
+  color: var(--vivo-blue); text-decoration: underline; cursor: pointer;
+}
+
+.spinner.dark { border-color: rgba(11, 20, 64, .3); border-top-color: var(--navy); }
+
+.modal-backdrop {
+  position: fixed; inset: 0; z-index: 50;
+  background: rgba(11, 20, 64, .6);
+  display: flex; align-items: flex-end; justify-content: center;
+}
+.modal {
+  background: #fff; width: 100%; max-width: 520px; max-height: 85dvh; overflow: auto;
+  border-radius: 18px 18px 0 0; padding: 24px 20px calc(20px + env(safe-area-inset-bottom));
+  animation: up .2s ease-out;
+}
+.terms-body { font-size: 14px; line-height: 1.6; color: var(--text); margin-bottom: 16px; }
+.close { margin-top: 8px; }
+@keyframes up { from { transform: translateY(40px); opacity: 0; } }
